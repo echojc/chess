@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/apex/log"
 	"github.com/apex/log/handlers/text"
@@ -102,16 +103,19 @@ func movesMatch(g Game, searchMoves []*chess.Move) bool {
 
 func formatGame(g Game, user string) string {
 	var rating int
-	var icon rune = '\u00d7'
+	var icon rune
+	var result rune
 
 	switch user {
 	case g.White.Username:
 		rating = g.White.Rating
 		icon = CharWhiteKing
+		result = unicode.ToUpper([]rune(g.White.NormalizedResult())[0])
 		break
 	case g.Black.Username:
 		rating = g.Black.Rating
 		icon = CharBlackKing
+		result = unicode.ToUpper([]rune(g.Black.NormalizedResult())[0])
 		break
 	}
 
@@ -126,11 +130,12 @@ func formatGame(g Game, user string) string {
 		log.WithError(err).WithField("url", g.URL).Warn("Could not parse game")
 	}
 
-	return fmt.Sprintf("%s [%s] (%c%4d) %s",
-		g.EndTime.Format("2006/01/02"),
+	return fmt.Sprintf("%s [%s] %c%4d%c %s",
+		g.EndTime.Format("02/01"),
 		g.URL,
 		icon,
 		rating,
+		result,
 		strings.TrimSpace(t.String()),
 	)
 }

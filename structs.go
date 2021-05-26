@@ -58,6 +58,20 @@ func (p Player) MarshalJSON() ([]byte, error) {
 	return json.Marshal(t)
 }
 
+func (p Player) NormalizedResult() string {
+	switch p.Result {
+	case "win":
+		return "win"
+	case "abandoned":
+		return "abandoned"
+	case "agreed", "repetition", "stalemate", "insufficient", "50move",
+		"timevsinsufficient":
+		return "draw"
+	default:
+		return "lose"
+	}
+}
+
 type Game struct {
 	URL       *url.URL
 	EndTime   time.Time
