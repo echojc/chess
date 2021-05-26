@@ -17,7 +17,7 @@ func init() {
 
 const (
 	CharWhiteKing = '\u2654'
-	CharBlackKing = '\u265A'
+	CharBlackKing = '\u265a'
 )
 
 var (
@@ -101,11 +101,18 @@ func movesMatch(g Game, searchMoves []*chess.Move) bool {
 }
 
 func formatGame(g Game, user string) string {
-	rating := g.White.Rating
-	king := CharWhiteKing
-	if g.Black.Username == user {
+	var rating int
+	var icon rune = '\u00d7'
+
+	switch user {
+	case g.White.Username:
+		rating = g.White.Rating
+		icon = CharWhiteKing
+		break
+	case g.Black.Username:
 		rating = g.Black.Rating
-		king = CharBlackKing
+		icon = CharBlackKing
+		break
 	}
 
 	t := chess.NewGame()
@@ -119,10 +126,10 @@ func formatGame(g Game, user string) string {
 		log.WithError(err).WithField("url", g.URL).Warn("Could not parse game")
 	}
 
-	return fmt.Sprintf("%s [%s] (%c%d) %s",
+	return fmt.Sprintf("%s [%s] (%c%4d) %s",
 		g.EndTime.Format("2006/01/02"),
 		g.URL,
-		king,
+		icon,
 		rating,
 		strings.TrimSpace(t.String()),
 	)
