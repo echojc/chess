@@ -2,9 +2,34 @@ package main
 
 import (
 	"errors"
+	"sort"
 
 	"github.com/apex/log"
 )
+
+func ListGames(user string, cacheOnly bool, forceFetch bool) ([]Game, error) {
+	archives, err := ListArchives(user, cacheOnly && !forceFetch)
+	if err != nil {
+		return nil, err
+	}
+
+	var games []Game
+	for _, a := range archives {
+		archiveGames, err := OpenArchive(a, cacheOnly, forceFetch)
+		if err != nil {
+			log.WithError(err).WithField("archive", a).
+				Warn("Could not open archive")
+		}
+		games = append(games, archiveGames...)
+	}
+
+	// newest games first
+	sort.Slice(games, func(i, j int) bool {
+		return games[i].EndTime.After(games[j].EndTime)
+	})
+
+	return games, nil
+}
 
 func ListArchives(user string, cacheOnly bool) ([]string, error) {
 	if cacheOnly {
