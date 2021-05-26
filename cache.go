@@ -12,6 +12,7 @@ import (
 
 var (
 	cacheArchives map[string][]Game = make(map[string][]Game)
+	userArchives  map[string][]string
 	eTags         map[string]string
 
 	_cacheDir     string
@@ -19,8 +20,9 @@ var (
 )
 
 const (
-	dirName   = "sh.echo.chess"
-	eTagsFile = "etags.json"
+	dirName          = "sh.echo.chess"
+	userArchivesFile = "userarchives.json"
+	eTagsFile        = "etags.json"
 )
 
 func cacheDir() string {
@@ -126,6 +128,84 @@ func saveETags() {
 		"path":  path,
 		"count": len(eTags),
 	}).Info("Saved ETags to file")
+}
+
+func LoadUserArchives(user string) []string {
+	if userArchives == nil {
+		loadUserArchives()
+	}
+
+	return userArchives[user]
+}
+
+func SaveUserArchives(user string, archives []string) {
+	if userArchives == nil {
+		loadUserArchives()
+	}
+
+	userArchives[user] = archives
+	saveUserArchives()
+}
+
+func loadUserArchives() {
+	baseDir := cacheDir()
+	if cacheDisabled || baseDir == "" {
+		userArchives = make(map[string][]string)
+		return
+	}
+
+	path := filepath.Join(baseDir, userArchivesFile)
+	f, err := os.Open(path)
+	if err != nil {
+		log.WithError(err).
+			Warn("Could not open cached user archives")
+		userArchives = make(map[string][]string)
+		return
+	}
+	defer f.Close()
+
+	if err := json.NewDecoder(f).Decode(&userArchives); err != nil {
+		log.WithError(err).WithField("path", path).
+			Warn("Could not read cached user archives")
+		userArchives = make(map[string][]string)
+		return
+	}
+
+	if len(userArchives) == 0 {
+		log.WithField("path", path).
+			Warn("Loaded user archives file but it was empty")
+		userArchives = make(map[string][]string)
+	}
+
+	log.WithFields(log.Fields{
+		"path":  path,
+		"count": len(userArchives),
+	}).Info("Loaded cached user archives")
+}
+
+func saveUserArchives() {
+	baseDir := cacheDir()
+	if cacheDisabled || baseDir == "" {
+		return
+	}
+
+	data, err := json.MarshalIndent(userArchives, "", "  ")
+	if err != nil {
+		log.WithError(err).Warn("Could not marshal user archives")
+		return
+	}
+
+	path := filepath.Join(baseDir, userArchivesFile)
+	if err = ioutil.WriteFile(path, data, 0644); err != nil {
+		log.WithError(err).WithField("path", path).
+			Warn("Could not write user archives to file")
+		return
+	}
+
+	log.WithFields(log.Fields{
+		"path":  path,
+		"count": len(userArchives),
+	}).Info("Saved user archives to file")
 }
 
 func createArchiveFilename(archiveID string) string {

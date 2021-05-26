@@ -6,6 +6,20 @@ import (
 	"github.com/apex/log"
 )
 
+func ListArchives(user string, cacheOnly bool) ([]string, error) {
+	if cacheOnly {
+		return LoadUserArchives(user), nil
+	}
+
+	archives, err := FetchArchives(user)
+	if err != nil {
+		return nil, err
+	}
+
+	SaveUserArchives(user, archives)
+	return archives, nil
+}
+
 func OpenArchive(archiveID string, cacheOnly bool, forceFetch bool) ([]Game, error) {
 	if cacheOnly {
 		games, ok := LoadArchive(archiveID)
