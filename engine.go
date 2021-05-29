@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os/exec"
@@ -20,6 +21,7 @@ type Result struct {
 	Score    float64
 	BestMove string
 	Time     time.Duration
+	Err      error
 }
 
 func (e *Engine) Analyze(fen string) Result {
@@ -34,30 +36,41 @@ func (e *Engine) Analyze(fen string) Result {
 	e.send(fen)
 	e.send("\n")
 	e.send(e.searchCmd)
-	//e.send("go movetime 2000\n")
 
-	data := e.readUntil("bestmove")
+	data := e.readUntilWithTimeout("bestmove")
 
-	bestmove := data[len(data)-1]
+	// parse cp out of info string
 	info := data[len(data)-2]
-
 	idx1 := strings.Index(info, " cp ") + 4
 	idx2 := strings.Index(info[idx1:], " ")
-
 	var f float64
-	if idx1 >= 0 || idx2 >= 0 {
-		f, e.err = strconv.ParseFloat(info[idx1:idx1+idx2], 64)
+	var ferr error
+	if idx1 >= 0 {
+		if idx2 >= 0 {
+			f, ferr = strconv.ParseFloat(info[idx1:idx1+idx2], 64)
+		} else {
+			f, ferr = strconv.ParseFloat(info[idx1:], 64)
+		}
+	}
+
+	// parse best move
+	bestMoveArr := strings.Split(data[len(data)-1], " ")
+	bestMove := "(none)"
+	if len(bestMoveArr) >= 2 {
+		bestMove = bestMoveArr[1]
 	}
 
 	return Result{
 		Score:    f / 100,
-		BestMove: strings.Split(bestmove, " ")[1],
+		BestMove: bestMove,
 		Time:     time.Since(start),
+		Err:      ferr,
 	}
 }
 
 type Engine struct {
 	searchCmd string
+	timeout   time.Duration
 
 	cmd     *exec.Cmd
 	stdin   io.WriteCloser
@@ -67,7 +80,7 @@ type Engine struct {
 	err error
 }
 
-func NewEngine(depth int) (*Engine, error) {
+func NewEngine(depth int, timeout time.Duration) (*Engine, error) {
 	cmd := exec.Command(processName)
 
 	in, err := cmd.StdinPipe()
@@ -91,6 +104,7 @@ func NewEngine(depth int) (*Engine, error) {
 		stdout:    out,
 		scanner:   bufio.NewScanner(out),
 		searchCmd: fmt.Sprintf("go depth %d\n", depth),
+		timeout:   timeout,
 	}
 
 	e.send("uci\n")
@@ -134,4 +148,23 @@ func (e *Engine) readUntil(prefix string) []string {
 
 	e.err = e.scanner.Err()
 	return out
+}
+
+func (e *Engine) readUntilWithTimeout(prefix string) []string {
+	ctx, cancel := context.WithTimeout(context.Background(), e.timeout)
+	defer cancel()
+
+	c := make(chan []string)
+	go func() {
+		c <- e.readUntil(prefix)
+		close(c)
+	}()
+
+	select {
+	case <-ctx.Done():
+		e.send("stop\n")
+		return <-c
+	case data := <-c:
+		return data
+	}
 }
