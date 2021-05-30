@@ -35,7 +35,7 @@ type config struct {
 
 func main() {
 	var (
-		logLevelString = flag.String("l", "warn", "Log level.")
+		logLevelString = flag.String("l", "info", "Log level.")
 		user           = flag.String("u", "", "User whose games to load. (required)")
 
 		isRefresh = flag.Bool("r", false, "Check server for new data for user.")
