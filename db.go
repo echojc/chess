@@ -2,10 +2,27 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/apex/log"
 )
+
+func OpenGame(user string, id string) (Game, error) {
+	games, err := ListGames(user, true, false)
+	if err != nil {
+		return Game{}, err
+	}
+
+	for _, g := range games {
+		if strings.HasSuffix(g.URL.String(), id) {
+			return g, nil
+		}
+	}
+
+	return Game{}, fmt.Errorf("Game not found (%s - %s)", user, id)
+}
 
 func ListGames(user string, cacheOnly bool, forceFetch bool) ([]Game, error) {
 	archives, err := ListArchives(user, cacheOnly && !forceFetch)
