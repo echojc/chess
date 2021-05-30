@@ -41,11 +41,12 @@ func (e *Engine) Analyze(fen string) Result {
 
 	// parse cp out of info string
 	info := data[len(data)-2]
-	idx1 := strings.Index(info, " cp ") + 4
-	idx2 := strings.Index(info[idx1:], " ")
+	idx1 := strings.Index(info, " cp ")
 	var f float64
 	var ferr error
 	if idx1 >= 0 {
+		idx1 += 4
+		idx2 := strings.Index(info[idx1:], " ")
 		if idx2 >= 0 {
 			f, ferr = strconv.ParseFloat(info[idx1:idx1+idx2], 64)
 		} else {
