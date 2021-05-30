@@ -98,57 +98,67 @@ func Analyze(cfg config) {
 		log.WithError(err).Fatal("Could not initialise analysis engine")
 	}
 
-	var score float64 = 0.4
-	nalg := chess.AlgebraicNotation{}
-	nuci := chess.UCINotation{}
+	// evaluate all board positions
 	positions := g.Positions()
-
-	for i, m := range g.Moves() {
-		pos := positions[i]
-		fen := pos.String()
+	log.WithField("n", len(positions)).Info("Got positions to analyse")
+	var results = make([]Result, len(positions))
+	for i, p := range positions {
+		log.WithField("i", i).Info("Analysing position")
+		fen := p.String()
 
 		r := e.Analyze(fen)
 		if err = e.Err(); err != nil {
 			log.WithError(err).WithFields(log.Fields{"i": i, "fen": fen}).
-				Warn("Failed to analyse board state")
+				Warn("Could not analyse board state")
 			continue
 		}
 
+		// engine returns score from current player's perspective
 		if i%2 == 1 {
 			r.Score *= -1
 		}
-
-		delta := r.Score - score
-		score = r.Score
-
-		var bestMove string
-		mb, err := nuci.Decode(pos, r.BestMove)
-		if err != nil {
-			log.WithError(err).Warn("Could not decode best move")
-			bestMove = r.BestMove
-		} else {
-			bestMove = nalg.Encode(pos, mb)
+		if r.Err != nil {
+			log.WithError(r.Err).WithFields(log.Fields{
+				"i":        i,
+				"fen":      fen,
+				"score":    r.Score,
+				"bestmove": r.BestMove,
+			}).Warn("Could not parse engine result")
 		}
 
-		if math.Abs(delta) > 2 {
-			fmt.Printf("{ %+.2f } ", delta)
-		}
+		results[i] = r
+	}
 
+	nalg := chess.AlgebraicNotation{}
+	nuci := chess.UCINotation{}
+
+	for i, gameMove := range g.Moves() {
 		var turn string
 		if i%2 == 0 {
-			turn = fmt.Sprintf("%d. ", i/2+1)
+			turn = fmt.Sprintf("%d.", i/2+1)
 		} else {
-			turn = fmt.Sprintf("%d... ", i/2+1)
+			turn = fmt.Sprintf("%d...", i/2+1)
 		}
-		move := nalg.Encode(pos, m)
-		fmt.Print(turn, move, " ")
 
+		gameMoveStr := nalg.Encode(positions[i], gameMove)
+		fmt.Printf("%s %s ", turn, gameMoveStr)
+
+		var bestMoveStr = results[i].BestMove
+		bestMove, err := nuci.Decode(positions[i], bestMoveStr)
+		if err != nil {
+			log.WithError(err).WithField("move", bestMove).
+				Warn("Could not decode best move")
+		} else {
+			bestMoveStr = nalg.Encode(positions[i], bestMove)
+		}
+
+		if gameMoveStr == bestMoveStr {
+			fmt.Print("{★} ")
+		}
+
+		delta := results[i+1].Score - results[i].Score
 		if math.Abs(delta) > 2 {
-			if move == bestMove {
-				fmt.Print("{★} ")
-			} else {
-				fmt.Printf("(%s%s) ", turn, bestMove)
-			}
+			fmt.Printf("{ %+.2f } (%s %s) ", delta, turn, bestMoveStr)
 		}
 	}
 
