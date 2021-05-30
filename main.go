@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/apex/log"
@@ -21,24 +22,41 @@ const (
 	CharBlackKing = '\u265a'
 )
 
-var (
-	user           = flag.String("u", "", "User whose games to load. (required)")
-	isRefresh      = flag.Bool("r", false, "Check server for new data for user.")
-	isForce        = flag.Bool("f", false, "Force refresh all data for user.")
-	length         = flag.Int("n", 20, "Number of games to display.")
-	query          = flag.String("q", "", "Only display games with these initial moves (space-separated algebraic notation).")
-	logLevelString = flag.String("l", "warn", "Log level.")
-)
+type config struct {
+	user string
+
+	// search
+	cacheOnly  bool
+	forceFetch bool
+	limit      int
+	query      string
+
+	// analyse
+	analyze string
+	depth   int
+	timeout time.Duration
+}
 
 func main() {
+	var (
+		logLevelString = flag.String("l", "warn", "Log level.")
+		user           = flag.String("u", "", "User whose games to load. (required)")
+
+		isRefresh = flag.Bool("r", false, "Check server for new data for user.")
+		isForce   = flag.Bool("f", false, "Force refresh all data for user.")
+		limit     = flag.Int("n", 20, "Number of games to display.")
+		query     = flag.String("q", "", "Only display games with these initial moves (space-separated algebraic notation).")
+
+		analyze = flag.String("a", "", "ID of game to analyse.")
+		depth   = flag.Int("d", 20, "Depth to analyse each position.")
+		timeout = flag.Duration("t", time.Second, "Timeout when analysing each position.")
+	)
 	flag.Parse()
 
 	if *user == "" {
 		flag.PrintDefaults()
 		os.Exit(2)
 	}
-	cacheOnly := !*isRefresh
-	forceFetch := *isForce
 
 	logLevel, err := log.ParseLevel(*logLevelString)
 	if err != nil {
@@ -48,16 +66,33 @@ func main() {
 	}
 	log.SetLevel(logLevel)
 
+	// read arguments into config
+	cfg := config{
+		user:       *user,
+		cacheOnly:  !*isRefresh,
+		forceFetch: *isForce,
+		limit:      *limit,
+		query:      *query,
+		analyze:    *analyze,
+		depth:      *depth,
+		timeout:    *timeout,
+	}
+	log.WithField("cfg", cfg).Debug("Loaded arguments")
+
+	Search(cfg)
+}
+
+func Search(cfg config) {
 	// validate moves in query string
 	var searchMoves []*chess.Move
-	if *query != "" {
-		algebraicMoves := strings.Split(*query, " ")
+	if cfg.query != "" {
+		algebraicMoves := strings.Split(cfg.query, " ")
 		searchBoard := chess.NewGame()
 		for _, m := range algebraicMoves {
 			err := searchBoard.MoveStr(m)
 			if err != nil {
 				log.WithError(err).WithFields(log.Fields{
-					"q":    *query,
+					"q":    cfg.query,
 					"move": m,
 				}).Fatal("Invalid move in query string")
 			}
@@ -65,17 +100,17 @@ func main() {
 		searchMoves = searchBoard.Moves()
 	}
 
-	games, err := ListGames(*user, cacheOnly, forceFetch)
+	games, err := ListGames(cfg.user, cfg.cacheOnly, cfg.forceFetch)
 	if err != nil {
-		log.WithError(err).WithField("user", user).Fatal("Could not get games")
+		log.WithError(err).WithField("user", cfg.user).Fatal("Could not get games")
 	}
 
-	for i, n := 0, 0; i < len(games) && n < *length; i++ {
+	for i, n := 0, 0; i < len(games) && n < cfg.limit; i++ {
 		if searchMoves != nil && !movesMatch(games[i], searchMoves) {
 			continue
 		}
 
-		fmt.Println(formatGame(games[i], *user))
+		fmt.Println(formatGame(games[i], cfg.user))
 		n++
 	}
 }
