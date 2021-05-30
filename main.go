@@ -17,11 +17,6 @@ func init() {
 	log.SetHandler(text.Default)
 }
 
-const (
-	CharWhiteKing = '\u2654'
-	CharBlackKing = '\u265a'
-)
-
 type config struct {
 	user string
 
@@ -144,12 +139,12 @@ func formatGame(g Game, user string) string {
 	switch user {
 	case g.White.Username:
 		rating = g.White.Rating
-		icon = CharWhiteKing
+		icon = '♔'
 		result = unicode.ToUpper([]rune(g.White.NormalizedResult())[0])
 		break
 	case g.Black.Username:
 		rating = g.Black.Rating
-		icon = CharBlackKing
+		icon = '♚'
 		result = unicode.ToUpper([]rune(g.Black.NormalizedResult())[0])
 		break
 	}
