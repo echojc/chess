@@ -263,12 +263,10 @@ func formatGame(g Game, user string) string {
 		rating = g.White.Rating
 		icon = '♔'
 		result = unicode.ToUpper([]rune(g.White.NormalizedResult())[0])
-		break
 	case g.Black.Username:
 		rating = g.Black.Rating
 		icon = '♚'
 		result = unicode.ToUpper([]rune(g.Black.NormalizedResult())[0])
-		break
 	}
 
 	t := chess.NewGame()
