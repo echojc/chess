@@ -52,6 +52,10 @@ func (e *Engine) Analyze(fen string) Result {
 		} else {
 			f, ferr = strconv.ParseFloat(info[idx1:], 64)
 		}
+	} else if strings.Index(info, " mate -") >= 0 {
+		f = -10000
+	} else if strings.Index(info, " mate ") >= 0 {
+		f = 10000
 	}
 
 	// parse best move
