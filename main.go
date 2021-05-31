@@ -21,11 +21,13 @@ func init() {
 type config struct {
 	user string
 
-	// search
+	// data consistency
 	cacheOnly  bool
 	forceFetch bool
-	limit      int
-	query      string
+
+	// search
+	limit int
+	query string
 
 	// analyse
 	analyze string
@@ -40,8 +42,9 @@ func main() {
 
 		isRefresh = flag.Bool("r", false, "Check server for new data for user.")
 		isForce   = flag.Bool("f", false, "Force refresh all data for user.")
-		limit     = flag.Int("n", 20, "Number of games to display.")
-		query     = flag.String("q", "", "Only display games with these initial moves (space-separated algebraic notation).")
+
+		limit = flag.Int("n", 20, "Number of games to display.")
+		query = flag.String("q", "", "Only display games with these initial moves (space-separated algebraic notation).")
 
 		analyze = flag.String("a", "", "ID of game to analyse.")
 		depth   = flag.Int("d", 20, "Depth to analyse each position.")
@@ -75,6 +78,16 @@ func main() {
 	}
 	log.WithField("cfg", cfg).Debug("Loaded arguments")
 
+	// check with server if either refresh or force refresh are set
+	if !cfg.cacheOnly || cfg.forceFetch {
+		_, err := RefreshCache(cfg.user, cfg.forceFetch)
+		if err != nil {
+			log.WithError(err).WithField("user", cfg.user).
+				Warn("Could not refresh cache")
+		}
+	}
+
+	// main function
 	if cfg.analyze != "" {
 		Analyze(cfg)
 	} else {
@@ -183,7 +196,7 @@ func Search(cfg config) {
 		searchMoves = searchBoard.Moves()
 	}
 
-	games, err := ListGames(cfg.user, cfg.cacheOnly, cfg.forceFetch)
+	games, err := ListCachedGames(cfg.user)
 	if err != nil {
 		log.WithError(err).WithField("user", cfg.user).Fatal("Could not get games")
 	}

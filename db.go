@@ -10,7 +10,7 @@ import (
 )
 
 func OpenGame(user string, id string) (Game, error) {
-	games, err := ListGames(user, true, false)
+	games, err := listGames(user, true, false)
 	if err != nil {
 		return Game{}, err
 	}
@@ -24,7 +24,15 @@ func OpenGame(user string, id string) (Game, error) {
 	return Game{}, fmt.Errorf("Game not found (%s - %s)", user, id)
 }
 
-func ListGames(user string, cacheOnly bool, forceFetch bool) ([]Game, error) {
+func ListCachedGames(user string) ([]Game, error) {
+	return listGames(user, true, false)
+}
+
+func RefreshCache(user string, forceFetch bool) ([]Game, error) {
+	return listGames(user, false, forceFetch)
+}
+
+func listGames(user string, cacheOnly bool, forceFetch bool) ([]Game, error) {
 	archives, err := ListArchives(user, cacheOnly && !forceFetch)
 	if err != nil {
 		return nil, err
