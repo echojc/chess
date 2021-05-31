@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -40,26 +41,31 @@ func (e *Engine) Analyze(fen string) Result {
 	data := e.readUntilWithTimeout("bestmove")
 
 	// parse cp out of info string
-	info := data[len(data)-2]
-	idx1 := strings.Index(info, " cp ")
 	var f float64
 	var ferr error
-	if idx1 >= 0 {
-		idx1 += 4
-		idx2 := strings.Index(info[idx1:], " ")
-		if idx2 >= 0 {
-			f, ferr = strconv.ParseFloat(info[idx1:idx1+idx2], 64)
-		} else {
-			f, ferr = strconv.ParseFloat(info[idx1:], 64)
+	curKey := ""
+	infoStr := data[len(data)-2]
+	for _, v := range strings.Split(infoStr, " ") {
+		switch v {
+		case "cp", "mate":
+			curKey = v
+			continue
 		}
-	} else if strings.Index(info, " mate -") >= 0 {
-		f = -10000
-	} else if strings.Index(info, " mate ") >= 0 {
-		f = 10000
+
+		switch curKey {
+		case "cp":
+			f, ferr = strconv.ParseFloat(v, 64)
+		case "mate":
+			f, ferr = strconv.ParseFloat(v, 64)
+			f = (f / math.Abs(f)) * 10000
+		}
+
+		curKey = ""
 	}
 
 	// parse best move
-	bestMoveArr := strings.Split(data[len(data)-1], " ")
+	bestMoveStr := data[len(data)-1]
+	bestMoveArr := strings.Split(bestMoveStr, " ")
 	bestMove := "(none)"
 	if len(bestMoveArr) >= 2 {
 		bestMove = bestMoveArr[1]
