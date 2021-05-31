@@ -96,14 +96,32 @@ func main() {
 }
 
 func Analyze(cfg config) {
-	data, err := OpenGame(cfg.user, cfg.analyze)
-	if err != nil {
-		log.WithError(err).Fatal("Could not find game to analyse")
+	var data Game
+	var err error
+
+	if cfg.analyze == "latest" {
+		games, err := ListCachedGames(cfg.user)
+		if err != nil {
+			log.WithError(err).WithField("user", cfg.user).
+				Fatal("Could not get games")
+		}
+		data = games[0]
+	} else {
+		data, err = OpenGame(cfg.user, cfg.analyze)
+		if err != nil {
+			log.WithError(err).WithFields(log.Fields{
+				"user": cfg.user,
+				"id":   cfg.analyze,
+			}).Fatal("Could not find game to analyse")
+		}
 	}
 
 	g, err := data.Game()
 	if err != nil {
-		log.WithError(err).Fatal("Could not parse game to analyse")
+		log.WithError(err).WithFields(log.Fields{
+			"user": cfg.user,
+			"id":   cfg.analyze,
+		}).Fatal("Could not parse game to analyse")
 	}
 
 	e, err := NewEngine(cfg.depth, cfg.timeout)
@@ -113,10 +131,12 @@ func Analyze(cfg config) {
 
 	// evaluate all board positions
 	positions := g.Positions()
-	log.WithField("n", len(positions)).Info("Got positions to analyse")
+	log.WithFields(log.Fields{
+		"url": data.URL.String(),
+		"n":   len(positions),
+	}).Info("Got positions to analyse")
 	var results = make([]Result, len(positions))
 	for i, p := range positions {
-		log.WithField("i", i).Info("Analysing position")
 		fen := p.String()
 
 		r := e.Analyze(fen)
@@ -140,6 +160,7 @@ func Analyze(cfg config) {
 		}
 
 		results[i] = r
+		log.WithFields(log.Fields{"i": i, "t": r.Time}).Info("Analysed position")
 	}
 
 	nalg := chess.AlgebraicNotation{}
