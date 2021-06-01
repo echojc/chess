@@ -30,9 +30,10 @@ type config struct {
 	query string
 
 	// analyse
-	analyze string
-	depth   int
-	timeout time.Duration
+	analyze   string
+	depth     int
+	timeout   time.Duration
+	threshold float64
 }
 
 func main() {
@@ -46,9 +47,10 @@ func main() {
 		limit = flag.Int("n", 20, "Number of games to display.")
 		query = flag.String("q", "", "Only display games with these initial moves (space-separated algebraic notation).")
 
-		analyze = flag.String("a", "", "ID of game to analyse.")
-		depth   = flag.Int("d", 20, "Depth to analyse each position.")
-		timeout = flag.Duration("t", time.Second, "Timeout when analysing each position.")
+		analyze   = flag.String("a", "", "ID of game to analyse.")
+		depth     = flag.Int("d", 20, "Depth to analyse each position.")
+		timeout   = flag.Duration("t", time.Second, "Timeout when analysing each position.")
+		threshold = flag.Float64("th", 1.8, "Threshold for annotating inaccurate moves (delta in position score).")
 	)
 	flag.Parse()
 
@@ -75,6 +77,7 @@ func main() {
 		analyze:    *analyze,
 		depth:      *depth,
 		timeout:    *timeout,
+		threshold:  *threshold,
 	}
 	log.WithField("cfg", cfg).Debug("Loaded arguments")
 
@@ -191,7 +194,7 @@ func Analyze(cfg config) {
 		}
 
 		delta := results[i+1].Score - results[i].Score
-		if math.Abs(delta) > 2 {
+		if math.Abs(delta) > cfg.threshold {
 			fmt.Printf("{ %+.2f } (%s %s) ", delta, turn, bestMoveStr)
 		}
 	}
