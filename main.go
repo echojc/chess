@@ -135,9 +135,12 @@ func Analyze(cfg config) {
 	// evaluate all board positions
 	positions := g.Positions()
 	log.WithFields(log.Fields{
-		"url": data.URL.String(),
-		"n":   len(positions),
-	}).Info("Got positions to analyse")
+		"url":       data.URL.String(),
+		"count":     len(positions),
+		"depth":     cfg.depth,
+		"timeout":   cfg.timeout,
+		"threshold": cfg.threshold,
+	}).Info("Starting analysis")
 	var results = make([]Result, len(positions))
 	for i, p := range positions {
 		fen := p.String()
