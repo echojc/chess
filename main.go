@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -19,7 +20,8 @@ func init() {
 }
 
 type config struct {
-	user string
+	user   string
+	output string
 
 	// data consistency
 	cacheOnly  bool
@@ -40,6 +42,7 @@ func main() {
 	var (
 		logLevelString = flag.String("l", "info", "Log level.")
 		user           = flag.String("u", "", "User whose games to load. (required)")
+		output         = flag.String("o", "", "Output format: url (default), pgn")
 
 		isRefresh = flag.Bool("r", false, "Check server for new data for user.")
 		isForce   = flag.Bool("f", false, "Force refresh all data for user.")
@@ -70,6 +73,7 @@ func main() {
 	// read arguments into config
 	cfg := config{
 		user:       *user,
+		output:     *output,
 		cacheOnly:  !*isRefresh,
 		forceFetch: *isForce,
 		limit:      *limit,
@@ -203,7 +207,12 @@ func Analyze(cfg config) {
 		}
 	}
 
-	fmt.Println(buf.String())
+	switch cfg.output {
+	case "pgn":
+		fmt.Println(buf.String())
+	default:
+		fmt.Printf("https://chess.com/analysis?pgn=%s\n", url.QueryEscape(buf.String()))
+	}
 }
 
 func Search(cfg config) {
