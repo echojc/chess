@@ -172,6 +172,7 @@ func Analyze(cfg config) {
 	nalg := chess.AlgebraicNotation{}
 	nuci := chess.UCINotation{}
 
+	buf := &strings.Builder{}
 	for i, gameMove := range g.Moves() {
 		var turn string
 		if i%2 == 0 {
@@ -181,7 +182,7 @@ func Analyze(cfg config) {
 		}
 
 		gameMoveStr := nalg.Encode(positions[i], gameMove)
-		fmt.Printf("%s %s ", turn, gameMoveStr)
+		fmt.Fprintf(buf, "%s %s ", turn, gameMoveStr)
 
 		var bestMoveStr = results[i].BestMove
 		bestMove, err := nuci.Decode(positions[i], bestMoveStr)
@@ -193,16 +194,16 @@ func Analyze(cfg config) {
 		}
 
 		if gameMoveStr == bestMoveStr {
-			fmt.Print("{★} ")
+			fmt.Fprint(buf, "{★} ")
 		}
 
 		delta := results[i+1].Score - results[i].Score
 		if math.Abs(delta) > cfg.threshold {
-			fmt.Printf("{ %+.2f } (%s %s) ", delta, turn, bestMoveStr)
+			fmt.Fprintf(buf, "{ %+.2f } (%s %s) ", delta, turn, bestMoveStr)
 		}
 	}
 
-	fmt.Print("\n")
+	fmt.Println(buf.String())
 }
 
 func Search(cfg config) {
