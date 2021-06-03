@@ -170,7 +170,8 @@ func Analyze(cfg config) {
 		}
 
 		results[i] = r
-		log.WithFields(log.Fields{"i": i, "t": r.Time}).Info("Analysed position")
+		log.WithFields(log.Fields{"i": i, "t": r.Time, "d": r.Depth}).
+			Info("Analysed position")
 	}
 
 	nalg := chess.AlgebraicNotation{}

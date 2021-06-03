@@ -21,13 +21,15 @@ const (
 type Result struct {
 	Score    float64
 	BestMove string
+	Depth    int
 	Time     time.Duration
 	Err      error
 }
 
 func (e *Engine) Analyze(fen string) Result {
+	var res Result
 	if e.err != nil {
-		return Result{}
+		return res
 	}
 
 	start := time.Now()
@@ -41,23 +43,24 @@ func (e *Engine) Analyze(fen string) Result {
 	data := e.readUntilWithTimeout("bestmove")
 
 	// parse cp out of info string
-	var f float64
-	var ferr error
 	curKey := ""
 	infoStr := data[len(data)-2]
 	for _, v := range strings.Split(infoStr, " ") {
 		switch v {
-		case "cp", "mate":
+		case "cp", "mate", "depth":
 			curKey = v
 			continue
 		}
 
 		switch curKey {
 		case "cp":
-			f, ferr = strconv.ParseFloat(v, 64)
+			res.Score, res.Err = strconv.ParseFloat(v, 64)
+			res.Score /= 100
 		case "mate":
-			f, ferr = strconv.ParseFloat(v, 64)
-			f = (f / math.Abs(f)) * 10000
+			res.Score, res.Err = strconv.ParseFloat(v, 64)
+			res.Score /= math.Abs(res.Score) * 100
+		case "depth":
+			res.Depth, res.Err = strconv.Atoi(v)
 		}
 
 		curKey = ""
@@ -66,17 +69,13 @@ func (e *Engine) Analyze(fen string) Result {
 	// parse best move
 	bestMoveStr := data[len(data)-1]
 	bestMoveArr := strings.Split(bestMoveStr, " ")
-	bestMove := "(none)"
+	res.BestMove = "(none)"
 	if len(bestMoveArr) >= 2 {
-		bestMove = bestMoveArr[1]
+		res.BestMove = bestMoveArr[1]
 	}
 
-	return Result{
-		Score:    f / 100,
-		BestMove: bestMove,
-		Time:     time.Since(start),
-		Err:      ferr,
-	}
+	res.Time = time.Since(start)
+	return res
 }
 
 type Engine struct {
