@@ -209,10 +209,10 @@ func Analyze(cfg config) {
 	}
 
 	switch cfg.output {
-	case "pgn":
-		fmt.Println(buf.String())
-	default:
+	case "url":
 		fmt.Printf("https://chess.com/analysis?pgn=%s\n", url.QueryEscape(buf.String()))
+	default:
+		fmt.Println(buf.String())
 	}
 }
 
