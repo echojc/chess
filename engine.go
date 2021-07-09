@@ -122,7 +122,7 @@ func NewEngine(depth int, timeout time.Duration) (*Engine, error) {
 
 	e.send("setoption name Threads value 8\n")
 	e.send("setoption name UCI_AnalyseMode value true\n")
-	e.send("setoption name Use NNUE value false\n")
+	e.send("setoption name Use NNUE value true\n")
 	e.send("isready\n")
 	e.readUntil("readyok")
 
