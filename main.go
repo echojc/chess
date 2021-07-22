@@ -42,7 +42,7 @@ func main() {
 	var (
 		logLevelString = flag.String("l", "info", "Log level.")
 		user           = flag.String("u", "", "User whose games to load. (required)")
-		output         = flag.String("o", "", "Output format: url (default), pgn")
+		output         = flag.String("o", "", "Output format: pgn (default), url")
 
 		isRefresh = flag.Bool("r", false, "Check server for new data for user.")
 		isForce   = flag.Bool("f", false, "Force refresh all data for user.")
