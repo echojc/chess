@@ -52,7 +52,7 @@ func main() {
 
 		analyze   = flag.String("a", "", "ID of game to analyse.")
 		depth     = flag.Int("d", 20, "Depth to analyse each position.")
-		timeout   = flag.Duration("t", time.Second, "Timeout when analysing each position.")
+		timeout   = flag.Duration("t", 3*time.Second, "Timeout when analysing each position.")
 		threshold = flag.Float64("th", 1.8, "Threshold for annotating inaccurate moves (delta in position score).")
 	)
 	flag.Parse()
